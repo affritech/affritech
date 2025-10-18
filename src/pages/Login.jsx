@@ -92,7 +92,7 @@ const Login = ({ onLogin }) => {
           <p>
             <strong>Demo Password:</strong> admin123
           </p>
-          <small>Remember to change this in production!</small>
+          <small></small>
         </div>
       </div>
     </div>
