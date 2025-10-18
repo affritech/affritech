@@ -5,6 +5,7 @@ import NoteView from './pages/NoteView';
 import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
 import './App.css';
+import './App-Enhanced.css'
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
