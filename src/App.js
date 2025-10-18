@@ -19,7 +19,7 @@ function App() {
 
   const handleLogin = (password) => {
     // Simple password check (in production, use proper authentication!)
-    const ADMIN_PASSWORD = 'admin123'; // Change this!
+    const ADMIN_PASSWORD = 'Africa'; // Change this!
     
     if (password === ADMIN_PASSWORD) {
       setIsAdmin(true);

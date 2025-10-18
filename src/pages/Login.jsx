@@ -90,7 +90,7 @@ const Login = ({ onLogin }) => {
         {/* Demo Info - Remove in production */}
         <div className="demo-info">
           <p>
-            <strong>Demo Password:</strong> admin123
+            <strong>Contact Admin:</strong> +254725693306
           </p>
           <small></small>
         </div>
