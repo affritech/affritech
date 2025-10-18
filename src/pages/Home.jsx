@@ -185,10 +185,7 @@ const Home = ({ isAdmin, onLogout }) => {
                   key={note.id}
                   note={note}
                   isAdmin={isAdmin}
-                  onEdit={(note) => {
-                    // Navigate to admin dashboard with edit parameter
-                    window.location.href = `/admin?edit=${note.id}`;
-                  }}
+                  onEdit={(note) => window.location.href = `/admin?edit=${note.id}`}
                   onDelete={handleDelete}
                 />
               ))}

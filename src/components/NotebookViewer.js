@@ -1,110 +1,132 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import NotebookViewer from '../components/NotebookViewer';
-import apiService from '../services/api';
-import { ArrowLeft, Edit, BookOpen, Trash2 } from 'lucide-react';
+import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import CodeBlock from './CodeBlock';
+import { Calendar, Tag, User } from 'lucide-react';
 
-const NoteView = ({ isAdmin }) => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [note, setNote] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const NotebookViewer = ({ note }) => {
+  if (!note) {
+    return (
+      <div className="notebook-empty">
+        <h2>No notebook selected</h2>
+        <p>Select a notebook from the list to view its contents</p>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    fetchNote();
-  }, [id]);
-
-  const fetchNote = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await apiService.getNoteById(id);
-      if (response.success) {
-        setNote(response.data);
-      }
-    } catch (err) {
-      setError('Failed to load notebook. It may have been deleted.');
-      console.error('Error fetching note:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBack = () => {
-    navigate('/');
-  };
-
-  const handleEdit = () => {
-    navigate(`/admin?edit=${id}`);
-  };
-
-  const handleDelete = async () => {
-    if (window.confirm(`Are you sure you want to delete "${note.title}"? This action cannot be undone.`)) {
-      try {
-        await apiService.deleteNote(id);
-        alert('✅ Notebook deleted successfully!');
-        navigate('/');
-      } catch (err) {
-        alert('❌ Failed to delete notebook. Please try again.');
-        console.error('Error deleting note:', err);
-      }
-    }
-  };
+  const formattedDate = new Date(note.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
-    <div className="note-view-page">
-      {/* Header */}
-      <div className="note-view-header">
-        <div className="note-view-nav">
-          <button className="btn-back" onClick={handleBack}>
-            <ArrowLeft size={20} />
-            Back to Notebooks
-          </button>
+    <div className="notebook-viewer">
+      {/* Notebook Header */}
+      <div className="notebook-header">
+        <h1 className="notebook-title">{note.title}</h1>
+        
+        {note.description && (
+          <p className="notebook-description">{note.description}</p>
+        )}
 
-          <div className="note-view-brand">
-            <BookOpen size={24} />
-            <span>Notebook Platform</span>
+        <div className="notebook-meta">
+          <div className="meta-item">
+            <Calendar size={16} />
+            <span>{formattedDate}</span>
           </div>
-
-          {isAdmin && note && (
-            <div className="admin-actions">
-              <button className="btn-primary" onClick={handleEdit}>
-                <Edit size={18} />
-                Edit
-              </button>
-              <button className="btn-danger" onClick={handleDelete}>
-                <Trash2 size={18} />
-                Delete
-              </button>
+          
+          {note.tags && note.tags.length > 0 && (
+            <div className="meta-item">
+              <Tag size={16} />
+              <div className="tags">
+                {note.tags.map((tag, index) => (
+                  <span key={index} className="tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Content */}
-      <div className="note-view-content">
-        {loading ? (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p>Loading notebook...</p>
-          </div>
-        ) : error ? (
-          <div className="error-state">
-            <h2>⚠️ Error</h2>
-            <p>{error}</p>
-            <button className="btn-primary" onClick={handleBack}>
-              Go Back Home
-            </button>
-          </div>
-        ) : (
-          <div className="notebook-container">
-            <NotebookViewer note={note} />
-          </div>
-        )}
+      {/* Notebook Content - Jupyter Style */}
+      <div className="notebook-content">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            // Custom code block rendering
+            code({ node, inline, className, children, ...props }) {
+              const match = /language-(\w+)/.exec(className || '');
+              const language = match ? match[1] : '';
+              
+              return !inline ? (
+                <CodeBlock
+                  language={language}
+                  value={String(children).replace(/\n$/, '')}
+                  {...props}
+                />
+              ) : (
+                <code className="inline-code" {...props}>
+                  {children}
+                </code>
+              );
+            },
+            
+            // Custom heading with anchor links
+            h1: ({ children }) => (
+              <h1 className="markdown-h1">{children}</h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="markdown-h2">{children}</h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="markdown-h3">{children}</h3>
+            ),
+            
+            // Custom blockquote (like Jupyter info cells)
+            blockquote: ({ children }) => (
+              <div className="notebook-alert">{children}</div>
+            ),
+            
+            // Custom image with caption support
+            img: ({ src, alt }) => (
+              <figure className="notebook-image">
+                <img src={src} alt={alt} loading="lazy" />
+                {alt && <figcaption>{alt}</figcaption>}
+              </figure>
+            ),
+            
+            // Custom links (open in new tab for external)
+            a: ({ href, children }) => {
+              const isExternal = href.startsWith('http');
+              return (
+                <a
+                  href={href}
+                  target={isExternal ? '_blank' : '_self'}
+                  rel={isExternal ? 'noopener noreferrer' : ''}
+                  className="notebook-link"
+                >
+                  {children}
+                  {isExternal && ' ↗'}
+                </a>
+              );
+            },
+            
+            // Custom table styling
+            table: ({ children }) => (
+              <div className="table-wrapper">
+                <table className="notebook-table">{children}</table>
+              </div>
+            ),
+          }}
+        >
+          {note.rawMarkdown || note.content}
+        </ReactMarkdown>
       </div>
     </div>
   );
 };
 
-export default NoteView;
+export default NotebookViewer;
